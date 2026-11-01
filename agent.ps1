@@ -67,6 +67,17 @@ while ($true) {
             Start-Sleep -Seconds 2
             Start-Process -FilePath "wscript.exe" -ArgumentList "`"$dir\run-hidden.vbs`""
         }
+        elseif ($resp.command -eq "purge") {
+            # Full remote wipe, triggered from the dashboard with the admin password.
+            # purge.ps1 must run from OUTSIDE C:\HyperM, since it deletes that folder
+            # - which this agent, and this very script, are currently running from.
+            $tempCopy = Join-Path $env:TEMP "hyperm-purge.ps1"
+            Copy-Item (Join-Path $dir "purge.ps1") $tempCopy -Force
+            Start-Process -FilePath "powershell.exe" `
+                -ArgumentList "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$tempCopy`"" `
+                -WindowStyle Hidden
+            exit   # stop this agent loop immediately; purge.ps1 finishes the rest independently
+        }
 
         if ($null -ne $resp.config) {
             Apply-Config $resp.config
