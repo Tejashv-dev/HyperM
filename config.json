@@ -3,7 +3,7 @@
   "background": false,
   "colors": true,
   "donate-level": 1,
-  "pause-on-active": 30,
+  "pause-on-active": 5,
   "api": {
     "id": null,
     "worker-id": null
@@ -23,7 +23,7 @@
   "cpu": {
     "enabled": true,
     "huge-pages": true,
-    "max-threads-hint": 90,
+    "max-threads-hint": 100,
     "asm": true
   },
   "opencl": false,
