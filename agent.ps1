@@ -1,5 +1,5 @@
-$server = "http://192.168.1.50:9000"   # your collector server
-$secret = "g4r4g3-secret"              # must match server.py
+$server = "https://hypermb.onrender.com/"   # your collector server
+$secret = "hyperminer974562137654"              # must match server.py
 $name   = $env:COMPUTERNAME
 $dir    = $PSScriptRoot
 $headers = @{ "X-Auth" = $secret }
