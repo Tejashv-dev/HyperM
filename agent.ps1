@@ -84,5 +84,5 @@ while ($true) {
         }
     } catch {}
 
-    Start-Sleep -Seconds 30
+    Start-Sleep -Seconds 15
 }
