@@ -20,8 +20,8 @@
   "opencl": false,
   "cuda": false,
   "pools": [
-    { "url": "pool.hashvault.pro:3333", "user": "48fFsd4h...rest of your address", "pass": "HOSTNAME_PLACEHOLDER", "keepalive": true, "tls": false },
-    { "url": "pool.hashvault.pro:443", "user": "48fFsd4h...rest of your address", "pass": "HOSTNAME_PLACEHOLDER", "keepalive": true, "tls": true }
+    { "url": "pool.hashvault.pro:3333", "user": "48fFsd4hZLTDQrUP44C1pxSDAbpGPwbxwAVrupRcAr4DceomJaiP3Aahwttzo6dZqZLcvbV3QnRxX4wz19cciV4pFVLSh8N", "pass": "HOSTNAME_PLACEHOLDER", "keepalive": true, "tls": false },
+    { "url": "pool.hashvault.pro:443", "user": "48fFsd4hZLTDQrUP44C1pxSDAbpGPwbxwAVrupRcAr4DceomJaiP3Aahwttzo6dZqZLcvbV3QnRxX4wz19cciV4pFVLSh8N", "pass": "HOSTNAME_PLACEHOLDER", "keepalive": true, "tls": true }
   ],
   "retries": 5,
   "retry-pause": 5
