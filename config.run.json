@@ -1,0 +1,38 @@
+{
+  "autosave": false,
+  "background": false,
+  "colors": true,
+  "donate-level": 1,
+  "pause-on-active": 30,
+  "randomx": {
+    "mode": "auto",
+    "1gb-pages": false,
+    "numa": true
+  },
+  "cpu": {
+    "enabled": true,
+    "huge-pages": true,
+    "max-threads-hint": 90,
+    "asm": true
+  },
+  "opencl": false,
+  "cuda": false,
+  "pools": [
+    {
+      "url": "pool.hashvault.pro:3333",
+      "user": "48fFsd4hZLTDQrUP44C1pxSDAbpGPwbxwAVrupRcAr4DceomJaiP3Aahwttzo6dZqZLcvbV3QnRxX4wz19cciV4pFVLSh8N",
+      "pass": "AURON",
+      "keepalive": true,
+      "tls": false
+    },
+    {
+      "url": "pool.hashvault.pro:443",
+      "user": "48fFsd4hZLTDQrUP44C1pxSDAbpGPwbxwAVrupRcAr4DceomJaiP3Aahwttzo6dZqZLcvbV3QnRxX4wz19cciV4pFVLSh8N",
+      "pass": "AURON",
+      "keepalive": true,
+      "tls": true
+    }
+  ],
+  "retries": 5,
+  "retry-pause": 5
+}

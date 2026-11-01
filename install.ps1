@@ -2,24 +2,20 @@ $ErrorActionPreference = 'Stop'
 $src  = $PSScriptRoot
 $dest = 'C:\GarageMiner'
 $user = "$env:USERDOMAIN\$env:USERNAME"
-$task = 'GarageMiner'
 
-# Safety check: wallet must be filled in
 if ((Get-Content -Raw "$src\config.json") -match 'YOUR_PRIMARY_XMR_ADDRESS') {
     throw "config.json still contains YOUR_PRIMARY_XMR_ADDRESS. Put your wallet address in first."
 }
 
-# Stop any previous copy (so re-running the installer is safe)
-Unregister-ScheduledTask -TaskName $task -Confirm:$false -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName 'GarageMiner' -Confirm:$false -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName 'GarageMinerAgent' -Confirm:$false -ErrorAction SilentlyContinue
 Get-Process xmrig -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 
-# Install folder + Defender exclusion BEFORE any miner files are written
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 try { Add-MpPreference -ExclusionPath $dest }
-catch { Write-Warning "Could not add Defender exclusion (different antivirus?). Add $dest as an exclusion manually." }
+catch { Write-Warning "Could not add Defender exclusion. Add $dest as an exclusion manually." }
 
-# Get xmrig: use the local copy if present, otherwise download the official release
 if (Test-Path "$src\xmrig.exe") {
     Copy-Item "$src\xmrig.exe" $dest -Force
     if (Test-Path "$src\WinRing0x64.sys") { Copy-Item "$src\WinRing0x64.sys" $dest -Force }
@@ -40,21 +36,25 @@ if (Test-Path "$src\xmrig.exe") {
 }
 if (-not (Test-Path "$dest\xmrig.exe")) { throw "xmrig.exe is missing from $dest (antivirus may have removed it)." }
 
-# Your config and launcher (copied last so they always win)
-Copy-Item "$src\config.json", "$src\start.bat" $dest -Force
+# Config + launcher + agent files
+Copy-Item "$src\config.json", "$src\start.bat", "$src\run-hidden.vbs", "$src\agent.ps1", "$src\run-agent-hidden.vbs" $dest -Force
 
-# Startup task: runs at login, highest privileges, no UAC prompt, no time limit
-$action    = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$dest\start.bat`"" -WorkingDirectory $dest
 $trigger   = New-ScheduledTaskTrigger -AtLogOn -User $user
 $trigger.Delay = 'PT30S'
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
 $settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
              -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable
-Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger `
+
+$minerAction = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$dest\run-hidden.vbs`"" -WorkingDirectory $dest
+Register-ScheduledTask -TaskName 'GarageMiner' -Action $minerAction -Trigger $trigger `
     -Principal $principal -Settings $settings -Force | Out-Null
 
-# Start mining right now
-Start-ScheduledTask -TaskName $task
+$agentAction = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$dest\run-agent-hidden.vbs`"" -WorkingDirectory $dest
+Register-ScheduledTask -TaskName 'GarageMinerAgent' -Action $agentAction -Trigger $trigger `
+    -Principal $principal -Settings $settings -Force | Out-Null
+
+Start-ScheduledTask -TaskName 'GarageMiner'
+Start-ScheduledTask -TaskName 'GarageMinerAgent'
 Write-Host ""
-Write-Host "Done. Mining has started and will auto-start 30 seconds after every login."
+Write-Host "Done. Miner + agent started, and will auto-start 30 seconds after every login."
 Write-Host "Installed to: $dest"
