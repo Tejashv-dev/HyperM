@@ -7,55 +7,48 @@ $dir        = $PSScriptRoot
 $configPath = Join-Path $dir "config.json"
 $headers    = @{ "X-Auth" = $secret }
 
-function Get-CurrentConfigValues {
+function Get-CurrentConfig {
     try {
-        $cfg = Get-Content -Raw $configPath | ConvertFrom-Json
-        return @{
-            max_threads_hint = $cfg.cpu.'max-threads-hint'
-            pause_on_active  = $cfg.'pause-on-active'
-        }
+        return Get-Content -Raw $configPath | ConvertFrom-Json
     } catch {
-        return @{ max_threads_hint = $null; pause_on_active = $null }
+        return $null
     }
 }
 
-function Apply-Config($newCfg) {
+function Restart-Miner {
+    Stop-Process -Name xmrig -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    Start-Process -FilePath "wscript.exe" -ArgumentList "`"$dir\run-hidden.vbs`""
+}
+
+function Apply-FullConfig($newCfg) {
     try {
-        $cfg = Get-Content -Raw $configPath | ConvertFrom-Json
-
-        if ($null -ne $newCfg.max_threads_hint) {
-            $cfg.cpu.'max-threads-hint' = [int]$newCfg.max_threads_hint
-        }
-        if ($null -ne $newCfg.pause_on_active) {
-            $cfg | Add-Member -NotePropertyName 'pause-on-active' -NotePropertyValue ([int]$newCfg.pause_on_active) -Force
-        }
-
-        $cfg | ConvertTo-Json -Depth 10 | Set-Content -Encoding ascii $configPath
-
-        # Apply by restarting the miner (config.run.json is rebuilt by start.bat on launch)
-        Stop-Process -Name xmrig -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 2
-        Start-Process -FilePath "wscript.exe" -ArgumentList "`"$dir\run-hidden.vbs`""
+        # $newCfg comes from the dashboard as a parsed JSON object (via
+        # Invoke-RestMethod) - write it straight to config.json, verbatim.
+        # The dashboard is the source of truth now: whatever it pushes is
+        # what xmrig runs with (pool, wallet, coin, algo, threads, pause,
+        # anything else), not just a couple of whitelisted fields.
+        $newCfg | ConvertTo-Json -Depth 20 | Set-Content -Encoding ascii $configPath
+        Restart-Miner
     } catch {}
 }
 
 while ($true) {
-    # --- report current stats + currently-applied config ---
+    # --- report current stats + the config currently on disk ---
     try {
         $stats   = Invoke-RestMethod "http://127.0.0.1:18080/2/summary" -TimeoutSec 5
-        $current = Get-CurrentConfigValues
+        $current = Get-CurrentConfig
         $body = @{
-            name             = $name
-            hashrate         = $stats.hashrate.total[0]
-            accepted         = $stats.results.shares_good
-            rejected         = $stats.results.shares_total - $stats.results.shares_good
-            max_threads_hint = $current.max_threads_hint
-            pause_on_active  = $current.pause_on_active
-        } | ConvertTo-Json
+            name     = $name
+            hashrate = $stats.hashrate.total[0]
+            accepted = $stats.results.shares_good
+            rejected = $stats.results.shares_total - $stats.results.shares_good
+            config   = $current
+        } | ConvertTo-Json -Depth 20
         Invoke-RestMethod -Uri "$server/report" -Method Post -Body $body -ContentType "application/json" -Headers $headers -TimeoutSec 10 | Out-Null
     } catch {}
 
-    # --- check for a pending command or config change ---
+    # --- check for a pending command or a new full config ---
     try {
         $resp = Invoke-RestMethod -Uri "$server/poll/$name" -Headers $headers -TimeoutSec 10
 
@@ -63,9 +56,7 @@ while ($true) {
             Stop-Process -Name xmrig -Force -ErrorAction SilentlyContinue
         }
         elseif ($resp.command -eq "restart") {
-            Stop-Process -Name xmrig -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
-            Start-Process -FilePath "wscript.exe" -ArgumentList "`"$dir\run-hidden.vbs`""
+            Restart-Miner
         }
         elseif ($resp.command -eq "purge") {
             # Full remote wipe, triggered from the dashboard with the admin password.
@@ -79,8 +70,8 @@ while ($true) {
             exit   # stop this agent loop immediately; purge.ps1 finishes the rest independently
         }
 
-        if ($null -ne $resp.config) {
-            Apply-Config $resp.config
+        if ($null -ne $resp.full_config) {
+            Apply-FullConfig $resp.full_config
         }
     } catch {}
 
